@@ -44,7 +44,7 @@ main()
   Vec2 rectPos = screenCenter, circlePos = {30,screenHeight - 30};
 
   clearScreen(COLOR_BLUE);
-  drawString5x7(20,20, "hello", COLOR_GREEN, COLOR_RED);
+  drawString5x7(20,20, "marina", COLOR_GREEN, COLOR_RED);
   shapeInit();
   
   layerInit(&layer0);

@@ -18,7 +18,10 @@
 
 
 AbRect rect10 = {abRectGetBounds, abRectCheck, {10,10}}; /**< 10x10 rectangle */
-AbRArrow rightArrow = {abRArrowGetBounds, abRArrowCheck, 30};
+//AbRArrow rightArrow = {abRArrowGetBounds, abRArrowCheck, 30};
+
+AbRect rect5 =  {abRectGetBounds, abRectCheck, {8,5}};
+AbRect rect2 =  {abRectGetBounds, abRectCheck, {2,8}};
 
 AbRectOutline fieldOutline = {	/* playing field */
   abRectOutlineGetBounds, abRectOutlineCheck,   
@@ -26,12 +29,12 @@ AbRectOutline fieldOutline = {	/* playing field */
 };
 
 Layer layer4 = {
-  (AbShape *)&rightArrow,
-  {(screenWidth/2)+10, (screenHeight/2)+5}, /**< bit below & right of center */
+  (AbShape *)&rect5,
+  {(screenWidth/2), (screenHeight/2)+65}, /**< bit below & right of center */
   {0,0}, {0,0},				    /* last & next pos */
-  COLOR_PINK,
+  COLOR_SEA_GREEN,
   0
-};
+  };
   
 
 Layer layer3 = {		/**< Layer with an orange circle */
@@ -47,7 +50,7 @@ Layer fieldLayer = {		/* playing field as a layer */
   (AbShape *) &fieldOutline,
   {screenWidth/2, screenHeight/2},/**< center */
   {0,0}, {0,0},				    /* last & next pos */
-  COLOR_BLACK,
+  COLOR_WHITE,
   &layer3
 };
 
@@ -78,9 +81,15 @@ typedef struct MovLayer_s {
 } MovLayer;
 
 /* initial value of {0,0} will be overwritten */
-MovLayer ml3 = { &layer3, {1,1}, 0 }; /**< not all layers move */
+
+MovLayer ml4 = { &layer4, {2,2}, 0 };
+MovLayer ml3 = { &layer3, {1,1}, &ml4 }; /**< not all layers move */
 MovLayer ml1 = { &layer1, {1,2}, &ml3 }; 
 MovLayer ml0 = { &layer0, {2,1}, &ml1 }; 
+
+
+
+
 
 void movLayerDraw(MovLayer *movLayers, Layer *layers)
 {
@@ -133,26 +142,44 @@ void mlAdvance(MovLayer *ml, Region *fence)
   Vec2 newPos;
   u_char axis;
   Region shapeBoundary;
-  for (; ml; ml = ml->next) {
+  for(int i = 0; i < 3; i++){
+  //for (; ml; ml = ml->next) {
     vec2Add(&newPos, &ml->layer->posNext, &ml->velocity);
     abShapeGetBounds(ml->layer->abShape, &newPos, &shapeBoundary);
     for (axis = 0; axis < 2; axis ++) {
       if ((shapeBoundary.topLeft.axes[axis] < fence->topLeft.axes[axis]) ||
 	  (shapeBoundary.botRight.axes[axis] > fence->botRight.axes[axis]) ) {
 	int velocity = ml->velocity.axes[axis] = -ml->velocity.axes[axis];
-	newPos.axes[axis] += (2*velocity);
+	newPos.axes[axis] += (velocity);
       }	/**< if outside of fence */
     } /**< for axis */
     ml->layer->posNext = newPos;
+    ml = ml ->next;
   } /**< for ml */
 }
 
 
-u_int bgColor = COLOR_BLUE;     /**< The background color */
+u_int bgColor = COLOR_BLACK;     /**< The background color */
 int redrawScreen = 1;           /**< Boolean for whether screen needs to be redrawn */
 
 Region fieldFence;		/**< fence around playing field  */
 
+void moveShipRight(Layer *layer){
+  
+  Vec2 nextPosition = layer->pos;
+  nextPosition.axes[0] = layer->pos.axes[0] + 5;
+  
+  layer->posNext = nextPosition;
+  
+}
+
+void moveShipLeft(Layer *layer){
+
+  Vec2 nextPosition = layer->pos;
+  nextPosition.axes[0] = layer->pos.axes[0] - 5;
+  
+  layer->posNext = nextPosition;
+}
 
 /** Initializes everything, enables interrupts and green LED, 
  *  and handles the rendering for the screen
@@ -165,7 +192,7 @@ void main()
   configureClocks();
   lcd_init();
   shapeInit();
-  p2sw_init(1);
+  p2sw_init(15);
 
   shapeInit();
 
@@ -181,10 +208,17 @@ void main()
 
 
   for(;;) { 
-    while (!redrawScreen) { /**< Pause CPU if screen doesn't need updating */
-      P1OUT &= ~GREEN_LED;    /**< Green led off witHo CPU */
-      or_sr(0x10);	      /**< CPU OFF */
+    u_int switches = p2sw_read();
+
+    //if(!switches & (1<< 1)){
+    if(switches == 14){
+      moveShipLeft(&layer4);
     }
+    // if(!switches & (1<< 0))
+    if(switches == 7){
+      moveShipRight(&layer4);
+    }
+  
     P1OUT |= GREEN_LED;       /**< Green led on when CPU on */
     redrawScreen = 0;
     movLayerDraw(&ml0, &layer0);
@@ -197,10 +231,8 @@ void wdt_c_handler()
   static short count = 0;
   P1OUT |= GREEN_LED;		      /**< Green LED on when cpu on */
   count ++;
-  if (count == 15) {
+  if (count == 10) {
     mlAdvance(&ml0, &fieldFence);
-    if (p2sw_read())
-      redrawScreen = 1;
     count = 0;
   } 
   P1OUT &= ~GREEN_LED;		    /**< Green LED off when cpu off */

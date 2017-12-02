@@ -18,9 +18,10 @@ abSlicedRectCheck(const AbRect *rect, const Vec2 *centerPos, const Vec2 *pixel)
 }
 
 AbRect rect10 = {abRectGetBounds, abSlicedRectCheck, 10,10};;
+AbRect rect20 = {abRectGetBounds, abSlicedRectCheck, 20,20};;
 
 
-Region fence = {{10,30}, {SHORT_EDGE_PIXELS-10, LONG_EDGE_PIXELS-10}};
+Region fence = {{20,30}, {SHORT_EDGE_PIXELS-10, LONG_EDGE_PIXELS-10}};
 
 
 #define numLayers 2
@@ -32,8 +33,8 @@ Layer layer1 = {
   0,
 };
 Layer layer0 = {
-  (AbShape *)&rect10,
-  {(screenWidth/2)+15, (screenHeight/2)+10}, /* position */
+  (AbShape *)&rect20,
+  {(screenWidth/2)+25, (screenHeight/2)+20}, /* position */
   {0,0}, {0,0},				    /* last & next pos */
   COLOR_ORANGE,
   &layer1,
@@ -42,7 +43,7 @@ Layer layer0 = {
 
     
 
-u_int bgColor = COLOR_BLUE;
+u_int bgColor = COLOR_GREEN;
 
 int
 main()
@@ -52,8 +53,8 @@ main()
   shapeInit();
   Vec2 rectPos = screenCenter, circlePos = {30,screenHeight - 30};
 
-  clearScreen(COLOR_BLUE);
-  drawString5x7(20,20, "hello", COLOR_GREEN, COLOR_RED);
+  clearScreen(COLOR_RED);
+  drawString5x7(20,20, "te amo baby", COLOR_GREEN, COLOR_RED);
   shapeInit();
   
   layerDraw(&layer0);
