@@ -22,18 +22,46 @@ AbRect rect10 = {abRectGetBounds, abRectCheck, {10,10}}; /**< 10x10 rectangle */
 
 AbRect rect5 =  {abRectGetBounds, abRectCheck, {8,5}};
 AbRect rect2 =  {abRectGetBounds, abRectCheck, {2,8}};
+AbRect bullet = {abRectGetBounds, abRectCheck, {1,2}};
 
 AbRectOutline fieldOutline = {	/* playing field */
   abRectOutlineGetBounds, abRectOutlineCheck,   
   {screenWidth/2 - 10, screenHeight/2 - 10}
 };
 
+Layer layer7 = {
+  (AbShape *)&bullet,
+  {(screenWidth/2), (screenHeight/2)+62}, /**< bit below & right of center */
+  {0,0}, {0,0},				    /* last & next pos */
+  COLOR_YELLOW,
+  0
+  };
+
+
+Layer layer6 = {
+  (AbShape *)&bullet,
+  {(screenWidth/2), (screenHeight/2)+62}, /**< bit below & right of center */
+  {0,0}, {0,0},				    /* last & next pos */
+  COLOR_YELLOW,
+  &layer7
+  };
+
+
+Layer layer5 = {
+  (AbShape *)&rect2,
+  {(screenWidth/2), (screenHeight/2)+62}, /**< bit below & right of center */
+  {0,0}, {0,0},				    /* last & next pos */
+  COLOR_SEA_GREEN,
+  &layer6
+  };
+
+
 Layer layer4 = {
   (AbShape *)&rect5,
   {(screenWidth/2), (screenHeight/2)+65}, /**< bit below & right of center */
   {0,0}, {0,0},				    /* last & next pos */
   COLOR_SEA_GREEN,
-  0
+  &layer5
   };
   
 
@@ -82,7 +110,10 @@ typedef struct MovLayer_s {
 
 /* initial value of {0,0} will be overwritten */
 
-MovLayer ml4 = { &layer4, {2,2}, 0 };
+MovLayer ml7 = { &layer7, {1,2}, 0};
+MovLayer ml6 = { &layer6, {1,2}, &ml7 };
+MovLayer ml5 = { &layer5, {1,2}, &ml6 };
+MovLayer ml4 = { &layer4, {2,2}, &ml5 };
 MovLayer ml3 = { &layer3, {1,1}, &ml4 }; /**< not all layers move */
 MovLayer ml1 = { &layer1, {1,2}, &ml3 }; 
 MovLayer ml0 = { &layer0, {2,1}, &ml1 }; 
@@ -161,24 +192,64 @@ void mlAdvance(MovLayer *ml, Region *fence)
 
 u_int bgColor = COLOR_BLACK;     /**< The background color */
 int redrawScreen = 1;           /**< Boolean for whether screen needs to be redrawn */
+u_int shotFired = 0;
+u_int shot2Fired = 0;
 
 Region fieldFence;		/**< fence around playing field  */
 
-void moveShipRight(Layer *layer){
-  
+void moveShipRight(Layer *layer, Layer *layer2, Layer *bullet1, Layer *bullet2){
   Vec2 nextPosition = layer->pos;
-  nextPosition.axes[0] = layer->pos.axes[0] + 5;
-  
+  Vec2 nextPos = layer2->pos;
+  Vec2 bulletNextPos = bullet1->posNext;
+  Vec2 bullet2NextPos = bullet2->posNext;
+  if(layer->pos.axes[0] < 105){
+    nextPosition.axes[0] = layer->pos.axes[0] + 5;
+    nextPos.axes[0] = layer2->pos.axes[0] + 5;
+    if(!shotFired)
+      bulletNextPos.axes[0] = bullet1->pos.axes[0] + 5;
+    if(!shot2Fired)
+      bullet2NextPos.axes[0] = bullet2->pos.axes[0] + 5;
+  }
   layer->posNext = nextPosition;
+  layer2->posNext = nextPos;
+  bullet1->posNext = bulletNextPos;
+  bullet2->posNext = bullet2NextPos;
   
 }
 
-void moveShipLeft(Layer *layer){
+void moveShipLeft(Layer *layer, Layer *layer2, Layer *bullet1, Layer *bullet2){
 
   Vec2 nextPosition = layer->pos;
-  nextPosition.axes[0] = layer->pos.axes[0] - 5;
-  
+  Vec2 nextPos = layer2->pos;
+  Vec2 bulletNextPos = bullet1->posNext;
+  Vec2 bullet2NextPos = bullet2->posNext;
+  if(layer->pos.axes[0] > 20){
+    nextPosition.axes[0] = layer->pos.axes[0] - 5;
+    nextPos.axes[0] = layer2->pos.axes[0] - 5;
+    if(!shotFired)
+      bulletNextPos.axes[0] = bullet1->pos.axes[0] - 5;
+    if(!shot2Fired)
+      bullet2NextPos.axes[0] = bullet2->pos.axes[0] - 5;
+  }
   layer->posNext = nextPosition;
+  layer2->posNext = nextPos;
+  bullet1->posNext = bulletNextPos;
+  bullet2->posNext = bullet2NextPos;
+}
+
+void shoot(Layer *layer, u_int isFirstShot, Layer *shipLayer){
+  Vec2 nextPos = layer->pos;
+  if(layer->pos.axes[1] > 15){
+    nextPos.axes[1] = layer->pos.axes[1] - 5;
+  }else{
+    if(isFirstShot)
+      shotFired = 0;
+    else
+      shot2Fired = 0;
+    nextPos = shipLayer->posNext;
+  }
+  
+    layer->posNext = nextPos;
 }
 
 /** Initializes everything, enables interrupts and green LED, 
@@ -206,21 +277,34 @@ void main()
   enableWDTInterrupts();      /**< enable periodic interrupt */
   or_sr(0x8);	              /**< GIE (enable interrupts) */
 
+  int count = 0;
+  for(;;) {
 
-  for(;;) { 
+    drawString5x7(10,0, "Score: 0", COLOR_GREEN, COLOR_BLACK);
+    
     u_int switches = p2sw_read();
-
+    
     //if(!switches & (1<< 1)){
     if(switches == 14){
-      moveShipLeft(&layer4);
+      moveShipLeft(&layer4, &layer5, &layer6, &layer7);
     }
     // if(!switches & (1<< 0))
     if(switches == 7){
-      moveShipRight(&layer4);
+      moveShipRight(&layer4, &layer5, &layer6, &layer7);
     }
-  
+
+    if(switches == 13 || switches == 11){
+      if(count==0){
+	shotFired = 1;
+	count++;
+      }else{
+	shot2Fired = 1;
+	count = 0;
+      }
+	//shoot(&layer6);
+    }
+    
     P1OUT |= GREEN_LED;       /**< Green led on when CPU on */
-    redrawScreen = 0;
     movLayerDraw(&ml0, &layer0);
   }
 }
@@ -233,6 +317,10 @@ void wdt_c_handler()
   count ++;
   if (count == 10) {
     mlAdvance(&ml0, &fieldFence);
+    if(shotFired)
+      shoot(&layer6, 1, &layer4);
+    if(shot2Fired)
+      shoot(&layer7, 0, &layer4);
     count = 0;
   } 
   P1OUT &= ~GREEN_LED;		    /**< Green LED off when cpu off */
