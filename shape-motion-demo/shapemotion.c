@@ -13,6 +13,7 @@
 #include <p2switches.h>
 #include <shape.h>
 #include <abCircle.h>
+#include "buzzer.h"
 
 #define GREEN_LED BIT6
 
@@ -259,7 +260,9 @@ void shoot(Layer *layer, u_int isFirstShot, Layer *shipLayer, MovLayer *list){
 	  (shapeBoundary.botRight.axes[0] >= layer->pos.axes[0]) &&
 	  (shapeBoundary.topLeft.axes[1] <= layer->pos.axes[1]) &&
 	  (shapeBoundary.botRight.axes[1] >= layer->pos.axes[1])){
-	//	drawString5x7(40,40, "Hola", COLOR_GREEN, COLOR_BLACK);
+	
+	buzzer_set_period(880);
+        buzzer_set_period(0);
 	score++;
 	if(isFirstShot)
 	  shotFired = 0;
@@ -290,7 +293,8 @@ void main()
   p2sw_init(15);
 
   shapeInit();
-
+  buzzer_init();
+  
   layerInit(&layer0);
   layerDraw(&layer0);
 
