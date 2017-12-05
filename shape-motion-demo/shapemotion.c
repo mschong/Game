@@ -266,10 +266,14 @@ void shoot(Layer *layer, u_int isFirstShot, Layer *shipLayer, MovLayer *list){
 	else
 	  shot2Fired = 0;
 	nextPos = shipLayer->posNext;
+       
+	list->layer->posNext.axes[0] = 30;
+	list->layer->posNext.axes[1] = 30;
+	 
       } /**< for axis */
-    list = list ->next;
+      list = list ->next;
   }
-    layer->posNext = nextPos;
+  layer->posNext = nextPos;
 }
 
 /** Initializes everything, enables interrupts and green LED, 
@@ -345,7 +349,7 @@ void wdt_c_handler()
   static short count = 0;
   P1OUT |= GREEN_LED;		      /**< Green LED on when cpu on */
   count ++;
-  if (count == 15) {
+  if (count == 25) {
     mlAdvance(&ml0, &fieldFence);
     if(shotFired)
       shoot(&layer6, 1, &layer4, &ml0);
