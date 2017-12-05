@@ -10,7 +10,7 @@ AS              = msp430-elf-gcc -mmcu=${CPU} -c
 all:shapemotion.elf
 
 #additional rules for files
-shapemotion.elf: ${COMMON_OBJECTS} shapemotion.o wdt_handler.o buzzer.o wdInterruptHandler.o
+shapemotion.elf: ${COMMON_OBJECTS} shapemotion.o wdt_handler.o buzzer.o
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $^ -lTimer -lLcd -lShape -lCircle -lp2sw
 
 load: shapemotion.elf
@@ -21,4 +21,3 @@ clean:
 
 buzzer.c: 	buzzer.h
 
-wdInterruptHandler.o: 	buzzer.h

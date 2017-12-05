@@ -36,7 +36,7 @@ Layer layer7 = {
   (AbShape *)&bullet,
   {(screenWidth/2), (screenHeight/2)+62}, /**< bit below & right of center */
   {0,0}, {0,0},				    /* last & next pos */
-  COLOR_YELLOW,
+  COLOR_RED,
   0
   };
 
@@ -45,7 +45,7 @@ Layer layer6 = {
   (AbShape *)&bullet,
   {(screenWidth/2), (screenHeight/2)+62}, /**< bit below & right of center */
   {0,0}, {0,0},				    /* last & next pos */
-  COLOR_YELLOW,
+  COLOR_RED,
   &layer7
   };
 
@@ -70,7 +70,7 @@ Layer layer4 = {
 
 Layer layer3 = {		/**< Layer with an orange circle */
   (AbShape *)&circle8,
-  {(screenWidth/2)+10, (screenHeight/2)+5}, /**< bit below & right of center */
+  {70, 33}, /**< bit below & right of center */
   {0,0}, {0,0},				    /* last & next pos */
   COLOR_VIOLET,
   &layer4,
@@ -87,17 +87,17 @@ Layer fieldLayer = {		/* playing field as a layer */
 
 Layer layer1 = {		/**< Layer with a red square */
   (AbShape *)&circle20,
-  {screenWidth/2, screenHeight/2}, /**< center */
+  {30, 30}, /**< center */
   {0,0}, {0,0},				    /* last & next pos */
-  COLOR_RED,
+  COLOR_GOLD,
   &fieldLayer,
 };
 
 Layer layer0 = {		/**< Layer with an orange circle */
   (AbShape *)&circle14,
-  {(screenWidth/2)+10, (screenHeight/2)+5}, /**< bit below & right of center */
+  {(screenWidth/2)+10, 35}, /**< bit below & right of center */
   {0,0}, {0,0},				    /* last & next pos */
-  COLOR_ORANGE,
+  COLOR_SKY_BLUE,
   &layer1,
 };
 
@@ -123,10 +123,11 @@ MovLayer ml0 = { &layer0, {2,1}, &ml1 };
 
 
 
-
+int isGameOver = 0;
 
 void movLayerDraw(MovLayer *movLayers, Layer *layers)
 {
+  if(!isGameOver){
   int row, col;
   MovLayer *movLayer;
 
@@ -160,6 +161,7 @@ void movLayerDraw(MovLayer *movLayers, Layer *layers)
       } // for col
     } // for row
   } // for moving layer being updated
+  }
 }	  
 
 
@@ -187,6 +189,21 @@ void mlAdvance(MovLayer *ml, Region *fence)
 	newPos.axes[axis] += (velocity);
       }	/**< if outside of fence */
     } /**< for axis */
+    if((shapeBoundary.botRight.axes[1] == fence->botRight.axes[1])){
+      isGameOver = 1;
+      char gameOver[10];
+      gameOver[0] = 'G';
+      gameOver[1] = 'A';
+      gameOver[2] = 'M';
+      gameOver[3] = 'E';
+      gameOver[4] = ' ';
+      gameOver[5] = 'O';
+      gameOver[6] = 'V';
+      gameOver[7] = 'E';
+      gameOver[8] = 'R';
+      gameOver[9] = 0;
+      drawString5x7(40,70, gameOver, COLOR_RED, COLOR_BLACK);
+    }
     ml->layer->posNext = newPos;
     ml = ml ->next;
   } /**< for ml */
@@ -306,8 +323,12 @@ void main()
   or_sr(0x8);	              /**< GIE (enable interrupts) */
 
   int count = 0;
- 
+  
   for(;;) {
+    if(score == 9){
+      isGameOver = 1;
+      drawString5x7(40,70, "YOU WIN! \0", COLOR_GREEN, COLOR_BLACK);
+    }
     char points[9];
     points[0] = 'S';
     points[1] = 'c';
@@ -353,7 +374,7 @@ void wdt_c_handler()
   static short count = 0;
   P1OUT |= GREEN_LED;		      /**< Green LED on when cpu on */
   count ++;
-  if (count == 25) {
+  if (count == 30) {
     mlAdvance(&ml0, &fieldFence);
     if(shotFired)
       shoot(&layer6, 1, &layer4, &ml0);
