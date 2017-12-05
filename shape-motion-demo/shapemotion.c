@@ -24,6 +24,8 @@ AbRect rect5 =  {abRectGetBounds, abRectCheck, {8,5}};
 AbRect rect2 =  {abRectGetBounds, abRectCheck, {2,8}};
 AbRect bullet = {abRectGetBounds, abRectCheck, {1,2}};
 
+int score = 0;
+
 AbRectOutline fieldOutline = {	/* playing field */
   abRectOutlineGetBounds, abRectOutlineCheck,   
   {screenWidth/2 - 10, screenHeight/2 - 10}
@@ -83,7 +85,7 @@ Layer fieldLayer = {		/* playing field as a layer */
 };
 
 Layer layer1 = {		/**< Layer with a red square */
-  (AbShape *)&rect10,
+  (AbShape *)&circle20,
   {screenWidth/2, screenHeight/2}, /**< center */
   {0,0}, {0,0},				    /* last & next pos */
   COLOR_RED,
@@ -237,7 +239,7 @@ void moveShipLeft(Layer *layer, Layer *layer2, Layer *bullet1, Layer *bullet2){
   bullet2->posNext = bullet2NextPos;
 }
 
-void shoot(Layer *layer, u_int isFirstShot, Layer *shipLayer){
+void shoot(Layer *layer, u_int isFirstShot, Layer *shipLayer, MovLayer *list){
   Vec2 nextPos = layer->pos;
   if(layer->pos.axes[1] > 15){
     nextPos.axes[1] = layer->pos.axes[1] - 5;
@@ -248,7 +250,25 @@ void shoot(Layer *layer, u_int isFirstShot, Layer *shipLayer){
       shot2Fired = 0;
     nextPos = shipLayer->posNext;
   }
-  
+  Region shapeBoundary;
+  for(int i = 0; i < 3; i++){
+  //for (; ml; ml = ml->next) {
+      abShapeGetBounds(list->layer->abShape, &list->layer->pos, &shapeBoundary);
+   
+      if ((shapeBoundary.topLeft.axes[0] <= layer->pos.axes[0]) &&
+	  (shapeBoundary.botRight.axes[0] >= layer->pos.axes[0]) &&
+	  (shapeBoundary.topLeft.axes[1] <= layer->pos.axes[1]) &&
+	  (shapeBoundary.botRight.axes[1] >= layer->pos.axes[1])){
+	//	drawString5x7(40,40, "Hola", COLOR_GREEN, COLOR_BLACK);
+	score++;
+	if(isFirstShot)
+	  shotFired = 0;
+	else
+	  shot2Fired = 0;
+	nextPos = shipLayer->posNext;
+      } /**< for axis */
+    list = list ->next;
+  }
     layer->posNext = nextPos;
 }
 
@@ -278,9 +298,19 @@ void main()
   or_sr(0x8);	              /**< GIE (enable interrupts) */
 
   int count = 0;
+ 
   for(;;) {
-
-    drawString5x7(10,0, "Score: 0", COLOR_GREEN, COLOR_BLACK);
+    char points[9];
+    points[0] = 'S';
+    points[1] = 'c';
+    points[2] = 'o';
+    points[3] = 'r';
+    points[4] = 'e';
+    points[5] = ':';
+    points[6] = ' ';
+    points[7] ='0' + score;
+    points[8] = 0;
+    drawString5x7(10,0, points, COLOR_GREEN, COLOR_BLACK);
     
     u_int switches = p2sw_read();
     
@@ -315,12 +345,12 @@ void wdt_c_handler()
   static short count = 0;
   P1OUT |= GREEN_LED;		      /**< Green LED on when cpu on */
   count ++;
-  if (count == 10) {
+  if (count == 15) {
     mlAdvance(&ml0, &fieldFence);
     if(shotFired)
-      shoot(&layer6, 1, &layer4);
+      shoot(&layer6, 1, &layer4, &ml0);
     if(shot2Fired)
-      shoot(&layer7, 0, &layer4);
+      shoot(&layer7, 0, &layer4, &ml0);
     count = 0;
   } 
   P1OUT &= ~GREEN_LED;		    /**< Green LED off when cpu off */
