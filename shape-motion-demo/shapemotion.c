@@ -26,6 +26,8 @@ AbRect rect2 =  {abRectGetBounds, abRectCheck, {2,8}};
 AbRect bullet = {abRectGetBounds, abRectCheck, {1,2}};
 
 int score = 0;
+int soundState = 0;
+int stop = 0;
 
 AbRectOutline fieldOutline = {	/* playing field */
   abRectOutlineGetBounds, abRectOutlineCheck,   
@@ -190,19 +192,7 @@ void mlAdvance(MovLayer *ml, Region *fence)
       }	/**< if outside of fence */
     } /**< for axis */
     if((shapeBoundary.botRight.axes[1] == fence->botRight.axes[1])){
-      isGameOver = 1;
-      char gameOver[10];
-      gameOver[0] = 'G';
-      gameOver[1] = 'A';
-      gameOver[2] = 'M';
-      gameOver[3] = 'E';
-      gameOver[4] = ' ';
-      gameOver[5] = 'O';
-      gameOver[6] = 'V';
-      gameOver[7] = 'E';
-      gameOver[8] = 'R';
-      gameOver[9] = 0;
-      drawString5x7(40,70, gameOver, COLOR_RED, COLOR_BLACK);
+      stop = 1;
     }
     ml->layer->posNext = newPos;
     ml = ml ->next;
@@ -258,17 +248,20 @@ void moveShipLeft(Layer *layer, Layer *layer2, Layer *bullet1, Layer *bullet2){
 }
 
 void shoot(Layer *layer, u_int isFirstShot, Layer *shipLayer, MovLayer *list){
+  
   Vec2 nextPos = layer->pos;
   if(layer->pos.axes[1] > 15){
+
     nextPos.axes[1] = layer->pos.axes[1] - 5;
   }else{
-    if(isFirstShot)
+    if(isFirstShot){
       shotFired = 0;
-    else
+    }else
       shot2Fired = 0;
     nextPos = shipLayer->posNext;
   }
   Region shapeBoundary;
+ 
   for(int i = 0; i < 3; i++){
   //for (; ml; ml = ml->next) {
       abShapeGetBounds(list->layer->abShape, &list->layer->pos, &shapeBoundary);
@@ -277,9 +270,7 @@ void shoot(Layer *layer, u_int isFirstShot, Layer *shipLayer, MovLayer *list){
 	  (shapeBoundary.botRight.axes[0] >= layer->pos.axes[0]) &&
 	  (shapeBoundary.topLeft.axes[1] <= layer->pos.axes[1]) &&
 	  (shapeBoundary.botRight.axes[1] >= layer->pos.axes[1])){
-	
-	buzzer_set_period(880);
-        buzzer_set_period(0);
+	soundState = 1;
 	score++;
 	if(isFirstShot)
 	  shotFired = 0;
@@ -294,6 +285,7 @@ void shoot(Layer *layer, u_int isFirstShot, Layer *shipLayer, MovLayer *list){
       list = list ->next;
   }
   layer->posNext = nextPos;
+  
 }
 
 /** Initializes everything, enables interrupts and green LED, 
@@ -327,6 +319,7 @@ void main()
   for(;;) {
     if(score == 9){
       isGameOver = 1;
+      stop = 2;
       drawString5x7(40,70, "YOU WIN! \0", COLOR_GREEN, COLOR_BLACK);
     }
     char points[9];
@@ -368,19 +361,84 @@ void main()
   }
 }
 
+int speed = 25;
+
 /** Watchdog timer interrupt handler. 15 interrupts/sec */
 void wdt_c_handler()
 {
-  static short count = 0;
-  P1OUT |= GREEN_LED;		      /**< Green LED on when cpu on */
-  count ++;
-  if (count == 30) {
-    mlAdvance(&ml0, &fieldFence);
-    if(shotFired)
-      shoot(&layer6, 1, &layer4, &ml0);
-    if(shot2Fired)
-      shoot(&layer7, 0, &layer4, &ml0);
-    count = 0;
-  } 
-  P1OUT &= ~GREEN_LED;		    /**< Green LED off when cpu off */
+  if(stop==0){
+    int song[11] = {523, 0, 523, 784, 0, 784, 831, 0, 831, 784};
+    static short count = 0;
+    int i = 0;
+    P1OUT |= GREEN_LED;		      /**< Green LED on when cpu on */
+    count ++;
+    if(score == 3){
+      speed = 20;
+    }
+    if(score == 6){
+      speed = 15;
+    }
+    if (count == speed) {
+      mlAdvance(&ml0, &fieldFence);
+      if(shotFired){
+	shoot(&layer6, 1, &layer4, &ml0);
+      }if(shot2Fired)
+	 shoot(&layer7, 0, &layer4, &ml0);
+      if(i == 11)
+	i = 0;
+      else
+	i++;
+      
+      switch(soundState){
+      case 0:
+	buzzer_set_period(0);
+	break;
+      case 1:
+	buzzer_set_period(4000);
+	soundState = 0;
+	break;
+      case 2:
+	buzzer_set_period(1000);
+	soundState = 0;
+	break;
+	
+      case 3:
+	buzzer_set_period(0);
+	soundState++;
+	break;	
+      }
+      
+      
+      count = 0;
+      
+    }
+    
+    P1OUT &= ~GREEN_LED;		    /**< Green LED off when cpu off */
+  }else if(stop==1){
+    soundState = 0;
+    isGameOver = 1;
+    clearScreen(COLOR_BLACK);
+    drawString5x7(40,70, "GAME OVER", COLOR_RED, COLOR_BLACK);
+  }
+  else if(stop==2){
+    soundState = 0;
+    isGameOver = 1;
+    clearScreen(COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_RED, COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_RED, COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_ORANGE, COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_ORANGE, COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_YELLOW, COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_YELLOW, COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_GREEN, COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_GREEN, COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_AQUAMARINE, COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_AQUAMARINE, COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_LIGHT_BLUE, COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_LIGHT_BLUE, COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_BLUE, COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_BLUE, COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_PURPLE, COLOR_BLACK);
+    drawString5x7(40,70, "YOU WIN!", COLOR_PURPLE, COLOR_BLACK);
+  }  
 }
