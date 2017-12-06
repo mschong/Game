@@ -9,10 +9,10 @@ To play you have to call
 '''
 make load
 '''
-on 'shape-motion-demo'
+on 'shape-motion-demo'.
 
-##Controls
--S1 moves the ship to the left
--S4 moves the ship to the right.
--S2 or S3 to shoot.
+## Controls
+- S1 moves the ship to the left
+- S4 moves the ship to the right.
+- S2 or S3 to shoot.
 
