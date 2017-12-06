@@ -271,7 +271,7 @@ void shoot(Layer *layer, u_int isFirstShot, Layer *shipLayer, MovLayer *list){
 	  (shapeBoundary.topLeft.axes[1] <= layer->pos.axes[1]) &&
 	  (shapeBoundary.botRight.axes[1] >= layer->pos.axes[1])){
 	soundState = 1;
-	score++;
+	score = addToScore();
 	if(isFirstShot)
 	  shotFired = 0;
 	else
@@ -396,15 +396,6 @@ void wdt_c_handler()
       case 1:
 	buzzer_set_period(4000);
 	soundState = 0;
-	break;
-      case 2:
-	buzzer_set_period(1000);
-	soundState = 0;
-	break;
-	
-      case 3:
-	buzzer_set_period(0);
-	soundState++;
 	break;	
       }
       
