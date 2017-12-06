@@ -6,10 +6,11 @@ The game includes a ship that shoots the circles that bounce around the arena. W
 
 ## Requirements
 To play you have to call
-'''
+
+```
 make load
-'''
-on 'shape-motion-demo'.
+```
+in `shape-motion-demo`
 
 ## Controls
 - S1 moves the ship to the left
